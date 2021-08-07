@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection.Emit;
 using Verse;
 using Verse.AI;
+// ReSharper disable UnusedMember.Global
 
 namespace NoJobAuthors
 {
@@ -26,37 +27,14 @@ namespace NoJobAuthors
                                        ((UnfinishedThing)t).ingredients.TrueForAll(x => bill.IsFixedOrAllowedIngredient(x.def)) &&
                                        pawn.CanReserve(t);
 
-            ThingRequest thingReq = ThingRequest.ForDef(bill.recipe.unfinishedThingDef);
-            TraverseParms traverseParams = TraverseParms.For(pawn, pawn.NormalMaxDanger());
+            var thingReq = ThingRequest.ForDef(bill.recipe.unfinishedThingDef);
+            var traverseParams = TraverseParms.For(pawn, pawn.NormalMaxDanger());
 
             __result = (UnfinishedThing)GenClosest.ClosestThingReachable(pawn.Position, pawn.Map, thingReq, PathEndMode.InteractionCell, traverseParams, validator: Validator);
-            //Log.Message("This is closest unfinished thing for bill");
+        #if DEBUG
+            Log.Message("This is closest unfinished thing for bill");
+        #endif
             return false;
-        }
-    }
-
-    [HarmonyPatch(typeof(UnfinishedThing), "get_Creator")]
-    public static class UnfinishedThing_GetCreator_Patch
-    {
-        [HarmonyPrefix]
-        public static bool Creator(ref Pawn __result)
-        {
-            __result = null;
-            //Log.Message("Set Creator to null");
-            return false;
-        }
-    }
-
-    [HarmonyPatch(typeof(UnfinishedThing), "set_Creator")]
-    public static class UnfinishedThing_SetCreator_Patch
-    {
-        private static readonly AccessTools.FieldRef<UnfinishedThing, string> _creatorName = AccessTools.FieldRefAccess<UnfinishedThing, string>("creatorName");
-
-        [HarmonyPostfix]
-        public static void Creator(UnfinishedThing __instance)
-        {
-            _creatorName(__instance) = "Everyone";
-            //Log.Message("I just set the creator to everyone");
         }
     }
 
@@ -67,7 +45,9 @@ namespace NoJobAuthors
         public static IEnumerable<CodeInstruction> StartOrResumeBillJob(IEnumerable<CodeInstruction> instructions)
         {
             var arr = instructions.ToArray();
-            //Log.Message("Start or resume bill patch op codes thing");
+        #if DEBUG
+            Log.Message("Start or resume bill patch op codes thing");
+        #endif
             for (var index = 0; index < arr.Length; index++)
             {
                 if (arr[index + 0].opcode == OpCodes.Ldloc_S &&
@@ -82,9 +62,13 @@ namespace NoJobAuthors
                     yield return new CodeInstruction(OpCodes.Nop);
                     index += 3;
                 }
-                else
-                    //Log.Message("We made it to start or resume bill job else statement");
+                else {
+                #if DEBUG
+                    Log.Message("We made it to start or resume bill job else statement");
+                #endif
                     yield return arr[index];
+
+                }
             }
         }
     }
@@ -95,7 +79,9 @@ namespace NoJobAuthors
         [HarmonyTranspiler]
         public static IEnumerable<CodeInstruction> FinishUftJob(IEnumerable<CodeInstruction> instructions)
         {
-            //Log.Message("FinishUftJob Start Patch");
+        #if DEBUG
+            Log.Message("FinishUftJob Start Patch");
+        #endif
             var arr = instructions.ToArray();
             for (var index = 0; index < arr.Length; index++)
             {
@@ -110,10 +96,43 @@ namespace NoJobAuthors
                     yield return new CodeInstruction(OpCodes.Br, arr[index + 3].operand);
                     index += 3;
                 }
-                else
-                    //Log.Message("FinishUftJob end else Patch");
+                else {
+                #if DEBUG
+                    Log.Message("FinishUftJob end else Patch");
+                #endif
                     yield return arr[index];
+
+                }
             }
+        }
+    }
+
+    [HarmonyPatch(typeof(UnfinishedThing), "get_Creator")]
+    public static class UnfinishedThing_GetCreator_Patch
+    {
+        [HarmonyPrefix]
+        public static bool Creator(ref Pawn __result)
+        {
+            __result = null;
+        #if  DEBUG
+            Log.Message("Set Creator to null");
+        #endif
+            return false;
+        }
+    }
+
+    [HarmonyPatch(typeof(UnfinishedThing), "set_Creator")]
+    public static class UnfinishedThing_SetCreator_Patch
+    {
+        private static readonly AccessTools.FieldRef<UnfinishedThing, string> _creatorName = AccessTools.FieldRefAccess<UnfinishedThing, string>("creatorName");
+
+        [HarmonyPostfix]
+        public static void Creator(UnfinishedThing __instance)
+        {
+            _creatorName(__instance) = "Everyone";
+        #if DEBUG
+            Log.Message("I just set the creator to everyone");
+        #endif
         }
     }
 }
